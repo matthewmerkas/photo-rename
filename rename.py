@@ -17,8 +17,12 @@ else:
     path = sys.argv[1]
 
 ctr = 0
+extensions = [".heic", ".HEIC", ".jpg", ".JPG", ".jpeg", ".JPEG", ".mov", ".MOV", ".mp4", ".MP4"]
 pathname = f"{path}{os.sep}**{os.sep}*"
-paths = glob(pathname + ".HEIC", recursive=True) + glob(pathname + ".jpg", recursive=True)
+paths = []
+for extension in extensions:
+    paths.extend(glob(pathname + extension, recursive=True))
+paths.sort()
 
 for file_path in tqdm(paths, file=sys.stdout, colour='BLUE'):
     folder_path, file_name = file_path.rsplit(os.sep, 1)
