@@ -37,15 +37,16 @@ for file_path in tqdm(paths, file=sys.stdout, colour='BLUE'):
             # Attempt to parse filename for date
             try:
                 datetime_object = datetime.strptime(file_name, "IMG_%Y%m%d_%H%M%S." + file_extension)
-            except ValueError:
-                print(f"Could not rename {file_name}")
+            except ValueError as ve:
+                print(f"Attempting to use date from previous file for {file_name}")
         else:
             # Get date from EXIF tag
             date_string = str(tags.get('Image DateTime'))
             datetime_object = datetime.strptime(date_string, "%Y:%m:%d %H:%M:%S")
 
-        date_formatted = datetime_object.strftime("%Y %m %b %d")
-        new_file_name = f"{date_formatted} {ctr:03} 01.{file_extension}"
-        os.rename(file_path, f"{folder_path}{os.sep}{new_file_name}")
+        if datetime_object:
+            date_formatted = datetime_object.strftime("%Y %m %b %d")
+            new_file_name = f"{date_formatted} {ctr:03} 01.{file_extension}"
+            os.rename(file_path, f"{folder_path}{os.sep}{new_file_name}")
 
 input("Press any key to exit...")
