@@ -26,22 +26,24 @@ paths.sort()
 
 for file_path in tqdm(paths, file=sys.stdout, colour='BLUE'):
     folder_path, file_name = file_path.rsplit(os.sep, 1)
-    if file_name[:3] != "IMG":
-        continue
-    ctr += 1
     with open(file_path, "rb") as f:
         tags = exifread.process_file(f)
         file_extension = file_name.split(".")[-1]
 
         if not tags or not tags.get('Image DateTime'):
             # Attempt to parse filename for date
+            split = file_name.split("_")
+            if len(split) > 1:
+                date_string = split[1]
+            else:
+                date_string = file_name
             try:
-                datetime_object = datetime.strptime(file_name, "IMG_%Y%m%d_%H%M%S." + file_extension)
+                datetime_object = datetime.strptime(date_string, f"%Y%m%d_%H%M%S.{file_extension}")
             except ValueError as ve:
                 print(f"Attempting to use date from previous file for {file_name}")
         else:
             # Get date from EXIF tag
-            date_string = str(tags.get('Image DateTime'))
+            date_string = str(tags.get("Image DateTime"))
             datetime_object = datetime.strptime(date_string, "%Y:%m:%d %H:%M:%S")
 
         if datetime_object:
