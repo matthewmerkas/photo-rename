@@ -16,7 +16,7 @@ if len(sys.argv) != 2:
 else:
     path = sys.argv[1]
 
-ctr = 0
+counters = {}  # Dictionary of current count for each date
 extensions = [".heic", ".HEIC", ".jpg", ".JPG", ".jpeg", ".JPEG", ".mov", ".MOV", ".mp4", ".MP4"]
 pathname = f"{path}{os.sep}**{os.sep}*"
 paths = []
@@ -46,7 +46,10 @@ for file_path in tqdm(paths, file=sys.stdout, colour='BLUE'):
 
         if datetime_object:
             date_formatted = datetime_object.strftime("%Y %m %b %d")
-            new_file_name = f"{date_formatted} {ctr:03} 01.{file_extension}"
+            counter = counters.get(date_formatted, 1)
+            counters[date_formatted] = counter + 1
+
+            new_file_name = f"{date_formatted} {counter:03} 01.{file_extension}"
             os.rename(file_path, f"{folder_path}{os.sep}{new_file_name}")
 
 input("Press any key to exit...")
