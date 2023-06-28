@@ -30,7 +30,11 @@ for file_path in tqdm(paths, file=sys.stdout, colour='BLUE'):
         tags = exifread.process_file(f)
         file_extension = file_name.split(".")[-1]
 
-        if not tags or not tags.get('Image DateTime'):
+        if tags and tags.get("Image DateTime"):
+            # Get date from EXIF tag
+            date_string = str(tags.get("Image DateTime"))
+            datetime_object = datetime.strptime(date_string, "%Y:%m:%d %H:%M:%S")
+        else:
             # Attempt to parse filename for date
             split = file_name.split("_")
             if len(split) > 1:
@@ -41,10 +45,6 @@ for file_path in tqdm(paths, file=sys.stdout, colour='BLUE'):
                 datetime_object = datetime.strptime(date_string, f"%Y%m%d_%H%M%S.{file_extension}")
             except ValueError as ve:
                 print(f"Attempting to use date from previous file for {file_name}")
-        else:
-            # Get date from EXIF tag
-            date_string = str(tags.get("Image DateTime"))
-            datetime_object = datetime.strptime(date_string, "%Y:%m:%d %H:%M:%S")
 
         if datetime_object:
             date_formatted = datetime_object.strftime("%Y %m %b %d")
