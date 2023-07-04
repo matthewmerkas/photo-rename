@@ -36,7 +36,7 @@ for file_path in tqdm(paths, file=sys.stdout, colour='BLUE'):
             datetime_object = datetime.strptime(date_string, "%Y:%m:%d %H:%M:%S")
         else:
             # Attempt to parse filename for date
-            split = file_name.split("_")
+            split = file_name.split("_", 1)
             if len(split) > 1:
                 date_string = split[1]
             else:
