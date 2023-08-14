@@ -17,6 +17,7 @@ else:
     path = sys.argv[1]
 
 counters = {}  # Dictionary of current count for each date
+datetime_object = None
 extensions = [".heic", ".HEIC", ".jpg", ".JPG", ".jpeg", ".JPEG", ".mov", ".MOV", ".mp4", ".MP4"]
 pathname = f"{path}{os.sep}**{os.sep}*"
 paths = []
