@@ -2,6 +2,7 @@ import exifread
 import os
 import sys
 from datetime import datetime
+
 from dateutil.parser import parse, ParserError
 from glob import glob
 from tqdm import tqdm
