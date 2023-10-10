@@ -2,8 +2,13 @@ import exifread
 import os
 import sys
 from datetime import datetime
+from dateutil.parser import parse, ParserError
 from glob import glob
 from tqdm import tqdm
+
+
+def datetime_from_tags(key):
+    return datetime.strptime(str(tags.get(key)), "%Y:%m:%d %H:%M:%S")
 
 
 if len(sys.argv) != 2:
@@ -20,33 +25,42 @@ counters = {}  # Dictionary of current count for each date
 datetime_object = None
 extensions = [".heic", ".HEIC", ".jpg", ".JPG", ".jpeg", ".JPEG", ".mov", ".MOV", ".mp4", ".MP4"]
 pathname = f"{path}{os.sep}**{os.sep}*"
-paths = []
-for extension in extensions:
-    paths.extend(glob(pathname + extension, recursive=True))
-paths.sort()
+date_paths = []
+file_paths = []
 
-for file_path in tqdm(paths, file=sys.stdout, colour='BLUE'):
+print("Getting file paths...")
+for extension in tqdm(extensions, file=sys.stdout, colour='BLUE'):
+    file_paths.extend(glob(pathname + extension, recursive=True))
+file_paths.sort()
+
+print("Sorting files...")
+for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
     folder_path, file_name = file_path.rsplit(os.sep, 1)
     with open(file_path, "rb") as f:
-        tags = exifread.process_file(f)
-        file_extension = file_name.split(".")[-1]
+        tags = exifread.process_file(f) or {}
 
-        if tags and tags.get("Image DateTime"):
-            # Get date from EXIF tag
-            date_string = str(tags.get("Image DateTime"))
-            datetime_object = datetime.strptime(date_string, "%Y:%m:%d %H:%M:%S")
+        if "Image DateTime" in tags:
+            datetime_object = datetime_from_tags("Image DateTime")
+        elif "EXIF DateTimeOriginal" in tags:
+            datetime_object = datetime_from_tags("EXIF DateTimeOriginal")
         else:
-            # Attempt to parse filename for date
-            split = file_name.split("_", 1)
-            if len(split) > 1:
-                date_string = split[1]
-            else:
-                date_string = file_name
             try:
-                datetime_object = datetime.strptime(date_string, f"%Y%m%d_%H%M%S.{file_extension}")
-            except ValueError as ve:
-                print(f"Attempting to use date from previous file for {file_name}")
+                datetime_object = parse(file_name, ignoretz=True, dayfirst=True, yearfirst=True, fuzzy=True)
+            except ParserError:
+                if datetime_object:
+                    print(f"Attempting to use date from previous file for {file_name}")
+                else:
+                    print(f"Cannot determine date for {file_name}. Exiting...")
+                    sys.exit(1)
+        date_paths.append((datetime_object, file_path))
 
+date_paths.sort()
+
+print("Renaming files...")
+for datetime_object, file_path in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
+    folder_path, file_name = file_path.rsplit(os.sep, 1)
+    with open(file_path, "rb") as f:
+        file_extension = file_name.split(".")[-1]
         if datetime_object:
             date_formatted = datetime_object.strftime("%Y %m %b %d")
             counter = counters.get(date_formatted, 1)
