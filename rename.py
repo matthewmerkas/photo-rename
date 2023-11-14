@@ -8,6 +8,12 @@ from glob import glob
 from tqdm import tqdm
 
 
+def datetime_from_file_name(file_name):
+    before, sep, after = file_name.partition('_')
+    datetime_str = (after or before).rpartition('.')[0]
+    return datetime.strptime(datetime_str, "%Y%m%d_%H%M%S")
+
+
 def datetime_from_tags(key):
     return datetime.strptime(str(tags.get(key)), "%Y:%m:%d %H:%M:%S")
 
@@ -54,11 +60,14 @@ for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
             try:
                 datetime_object = parse(file_name, ignoretz=True, dayfirst=True, yearfirst=True, fuzzy=True)
             except ParserError:
-                if datetime_object:
-                    print(f"Attempting to use date from previous file for {file_name}")
-                else:
-                    print(f"Cannot determine date for {file_name}. Exiting...")
-                    sys.exit(1)
+                try:
+                    datetime_object = datetime_from_file_name(file_name)
+                except (ValueError, TypeError):
+                    if datetime_object:
+                        print(f"Attempting to use date from previous file for {file_name}")
+                    else:
+                        print(f"Cannot determine date for {file_name}. Exiting...")
+                        sys.exit(1)
         date_paths.append((datetime_object, file_path))
 
 date_paths.sort()
