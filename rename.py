@@ -12,6 +12,12 @@ def datetime_from_tags(key):
     return datetime.strptime(str(tags.get(key)), "%Y:%m:%d %H:%M:%S")
 
 
+def partition_file_path(file_path):
+    folder_path, file_name = file_path.rsplit(os.sep, 1)
+    before, sep, after = file_name.partition('_')
+    return after or before
+
+
 if len(sys.argv) != 2:
     print("Renames photos based on time taken.\n"
           "Files will be renamed recursively.\n"
@@ -32,9 +38,9 @@ file_paths = []
 print("Getting file paths...")
 for extension in tqdm(extensions, file=sys.stdout, colour='BLUE'):
     file_paths.extend(glob(pathname + extension, recursive=True))
-file_paths.sort()
 
 print("Sorting files...")
+file_paths.sort(key=lambda fp: partition_file_path(fp))
 for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
     folder_path, file_name = file_path.rsplit(os.sep, 1)
     with open(file_path, "rb") as f:
