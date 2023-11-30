@@ -50,7 +50,10 @@ file_paths.sort(key=lambda fp: partition_file_path(fp))
 for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
     folder_path, file_name = file_path.rsplit(os.sep, 1)
     with open(file_path, "rb") as f:
-        tags = exifread.process_file(f) or {}
+        try:
+            tags = exifread.process_file(f) or {}
+        except AssertionError:
+            tags = {}
 
         if "Image DateTime" in tags:
             datetime_object = datetime_from_tags("Image DateTime")
