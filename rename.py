@@ -36,7 +36,13 @@ else:
 
 counters = {}  # Dictionary of current count for each date
 datetime_object = None
-extensions = [".heic", ".HEIC", ".jpg", ".JPG", ".jpeg", ".JPEG", ".mov", ".MOV", ".mp4", ".MP4"]
+_extensions = [".heic", ".jpg", ".jpeg", ".mov", ".mp4"]
+extensions = []
+# From https://stackoverflow.com/a/10886685
+for extension in _extensions:
+    def either(c):
+        return '[%s%s]' % (c.lower(), c.upper()) if c.isalpha() else c
+    extensions.append(''.join(map(either, extension)))
 pathname = f"{path}{os.sep}**{os.sep}*"
 date_paths = []
 file_paths = []
@@ -80,6 +86,10 @@ for datetime_object, file_path in tqdm(date_paths, file=sys.stdout, colour='BLUE
     folder_path, file_name = file_path.rsplit(os.sep, 1)
     with open(file_path, "rb") as f:
         file_extension = file_name.split(".")[-1]
+        if file_extension.lower() == 'heic':
+            file_extension = 'HEIC'
+        else:
+            file_extension = file_extension.lower()
         if datetime_object:
             date_formatted = datetime_object.strftime("%Y %m %b %d")
             counter = counters.get(date_formatted, 1)
