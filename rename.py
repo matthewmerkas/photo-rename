@@ -3,8 +3,11 @@ import os
 import sys
 from datetime import datetime
 
+from PIL import Image
 from dateutil.parser import parse, ParserError
 from glob import glob
+
+from pillow_heif import register_heif_opener
 from tqdm import tqdm
 
 
@@ -38,6 +41,7 @@ counters = {}  # Dictionary of current count for each date
 datetime_object = None
 _extensions = [".heic", ".jpg", ".jpeg", ".mov", ".mp4"]
 extensions = []
+jpeg_quality = 90
 # From https://stackoverflow.com/a/10886685
 for extension in _extensions:
     def either(c):
@@ -73,7 +77,8 @@ for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
                     datetime_object = datetime_from_file_name(file_name)
                 except (ValueError, TypeError):
                     if datetime_object:
-                        print(f"Attempting to use date from previous file for {file_name}")
+                        # print(f"Attempting to use date from previous file for {file_name}")
+                        pass
                     else:
                         print(f"Cannot determine date for {file_name}. Exiting...")
                         sys.exit(1)
@@ -82,20 +87,35 @@ for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
 date_paths.sort()
 
 print("Renaming files...")
+heic_extns = ['.heic', '.heif']
+new_paths = []
 for datetime_object, file_path in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
     folder_path, file_name = file_path.rsplit(os.sep, 1)
     with open(file_path, "rb") as f:
-        file_extension = file_name.split(".")[-1]
-        if file_extension.lower() == 'heic':
-            file_extension = 'HEIC'
+        file_extn = "." + file_name.split(".")[-1]
+        if file_extn.lower() in heic_extns:
+            file_extn = file_extn.upper()
         else:
-            file_extension = file_extension.lower()
+            file_extn = file_extn.lower()
         if datetime_object:
             date_formatted = datetime_object.strftime("%Y %m %b %d")
             counter = counters.get(date_formatted, 1)
             counters[date_formatted] = counter + 1
 
-            new_file_name = f"{date_formatted} {counter:03} 01.{file_extension}"
-            os.rename(file_path, f"{folder_path}{os.sep}{new_file_name}")
+            new_file_name = f"{date_formatted} {counter:03} 01"
+            new_file_path = f"{folder_path}{os.sep}{new_file_name}{file_extn}"
+            new_paths.append((folder_path, new_file_name, file_extn))
+            os.rename(file_path, new_file_path)
+
+print("Converting to JPG...")
+register_heif_opener()
+for folder_path, file_name, file_extn in tqdm(new_paths, file=sys.stdout, colour='BLUE'):
+    if file_extn.lower() not in heic_extns:
+        continue
+    input_file_path = f"{folder_path}{os.sep}{file_name}{file_extn}"
+    output_file_path = f"{folder_path}{os.sep}{file_name}.jpg"
+    image = Image.open(input_file_path)
+    image.save(output_file_path, quality=jpeg_quality, exif=image.getexif())
+    os.remove(input_file_path)
 
 input("Press any key to exit...")
