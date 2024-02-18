@@ -92,11 +92,11 @@ new_paths = []
 for datetime_object, file_path in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
     folder_path, file_name = file_path.rsplit(os.sep, 1)
     with open(file_path, "rb") as f:
-        file_extn = "." + file_name.split(".")[-1]
-        if file_extn.lower() in heic_extns:
+        file_extn = "." + file_name.split(".")[-1].lower()
+        if file_extn in heic_extns:
             file_extn = file_extn.upper()
-        else:
-            file_extn = file_extn.lower()
+        elif file_extn == ".jpeg":
+            file_extn = ".jpg"
         if datetime_object:
             date_formatted = datetime_object.strftime("%Y %m %b %d")
             counter = counters.get(date_formatted, 1)
