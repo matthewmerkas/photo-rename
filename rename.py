@@ -104,14 +104,13 @@ for datetime_object, file_path in tqdm(date_paths, file=sys.stdout, colour='BLUE
 
             new_file_name = f"{date_formatted} {counter:03} 01"
             new_file_path = f"{folder_path}{os.sep}{new_file_name}{file_extn}"
-            new_paths.append((folder_path, new_file_name, file_extn))
+            if file_extn.lower() in heic_extns:
+                new_paths.append((folder_path, new_file_name, file_extn))
             os.rename(file_path, new_file_path)
 
 print("Converting to JPG...")
 register_heif_opener()
 for folder_path, file_name, file_extn in tqdm(new_paths, file=sys.stdout, colour='BLUE'):
-    if file_extn.lower() not in heic_extns:
-        continue
     input_file_path = f"{folder_path}{os.sep}{file_name}{file_extn}"
     output_file_path = f"{folder_path}{os.sep}{file_name}.jpg"
     image = Image.open(input_file_path)
