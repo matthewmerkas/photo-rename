@@ -80,7 +80,8 @@ for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
                         # print(f"Attempting to use date from previous file for {file_name}")
                         pass
                     else:
-                        print(f"Cannot determine date for {file_name}. Exiting...")
+                        print(f"Cannot determine date for {file_name}")
+                        input("Press any key to exit...")
                         sys.exit(1)
         date_paths.append((datetime_object, file_path))
 
