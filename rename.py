@@ -65,10 +65,10 @@ for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
         except AssertionError:
             tags = {}
 
-        if "Image DateTime" in tags:
-            datetime_object = datetime_from_tags("Image DateTime")
-        elif "EXIF DateTimeOriginal" in tags:
+        if "EXIF DateTimeOriginal" in tags:
             datetime_object = datetime_from_tags("EXIF DateTimeOriginal")
+        elif "Image DateTime" in tags:
+            datetime_object = datetime_from_tags("Image DateTime")
         else:
             try:
                 datetime_object = parse(file_name, ignoretz=True, dayfirst=True, yearfirst=True, fuzzy=True)
@@ -88,6 +88,7 @@ for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
 date_paths.sort()
 
 print("Renaming files...")
+sys.exit(2)
 heic_extns = ['.heic', '.heif']
 new_paths = []
 for datetime_object, file_path in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
