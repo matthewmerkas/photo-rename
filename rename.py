@@ -88,7 +88,6 @@ for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
 date_paths.sort()
 
 print("Renaming files...")
-sys.exit(2)
 heic_extns = ['.heic', '.heif']
 new_paths = []
 for datetime_object, file_path in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
