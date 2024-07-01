@@ -30,6 +30,7 @@ def partition_file_path(file_path):
 if len(sys.argv) != 2:
     print("Renames photos based on time taken.\n"
           "Files will be renamed recursively.\n"
+          "Live Photos (.mov) will be deleted.\n"
           "Usage:\n\n"
           "python rename.py [absolute path of containing folder]\n\n"
           "Tip: drag and drop desired folder onto terminal.")
@@ -39,21 +40,22 @@ else:
 
 counters = {}  # Dictionary of current count for each date
 datetime_object = None
+deleted_count = 0
 _extensions = [".heic", ".jpg", ".jpeg", ".mov", ".mp4"]
 extensions = []
 jpeg_quality = 90
 # From https://stackoverflow.com/a/10886685
-for extension in _extensions:
+for extn in _extensions:
     def either(c):
         return '[%s%s]' % (c.lower(), c.upper()) if c.isalpha() else c
-    extensions.append(''.join(map(either, extension)))
+    extensions.append(''.join(map(either, extn)))
 pathname = f"{path}{os.sep}**{os.sep}*"
 date_paths = []
 file_paths = []
 
 print("Getting file paths...")
-for extension in tqdm(extensions, file=sys.stdout, colour='BLUE'):
-    file_paths.extend(glob(pathname + extension, recursive=True))
+for extn in tqdm(extensions, file=sys.stdout, colour='BLUE'):
+    file_paths.extend(glob(pathname + extn, recursive=True))
 
 print("Sorting files...")
 file_paths.sort(key=lambda fp: partition_file_path(fp))
@@ -89,33 +91,42 @@ date_paths.sort()
 
 print("Renaming files...")
 heic_extns = ['.heic', '.heif']
+last_name = ""
 new_paths = []
 for datetime_object, file_path in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
     folder_path, file_name = file_path.rsplit(os.sep, 1)
     with open(file_path, "rb") as f:
-        file_extn = "." + file_name.split(".")[-1].lower()
-        if file_extn in heic_extns:
-            file_extn = file_extn.upper()
-        elif file_extn == ".jpeg":
-            file_extn = ".jpg"
+        partitions = file_name.rpartition(".")
+        extn = "".join(partitions[1:]).lower()
+        if extn in heic_extns:
+            extn = extn.upper()
+        elif extn == ".jpeg":
+            extn = ".jpg"
+        elif extn == ".mov" and last_name == partitions[0]:
+            # Live Photo
+            os.remove(file_path)
+            deleted_count += 1
+            continue
+        last_name = partitions[0]
         if datetime_object:
             date_formatted = datetime_object.strftime("%Y %m %b %d")
             counter = counters.get(date_formatted, 1)
             counters[date_formatted] = counter + 1
 
-            new_file_name = f"{date_formatted} {counter:03} 01"
-            new_file_path = f"{folder_path}{os.sep}{new_file_name}{file_extn}"
-            if file_extn.lower() in heic_extns:
-                new_paths.append((folder_path, new_file_name, file_extn))
+            new_name = f"{date_formatted} {counter:03} 01"
+            new_file_path = f"{folder_path}{os.sep}{new_name}{extn}"
+            if extn.lower() in heic_extns:
+                new_paths.append((folder_path, new_name, extn))
             os.rename(file_path, new_file_path)
 
 print("Converting to JPG...")
 register_heif_opener()
-for folder_path, file_name, file_extn in tqdm(new_paths, file=sys.stdout, colour='BLUE'):
-    input_file_path = f"{folder_path}{os.sep}{file_name}{file_extn}"
-    output_file_path = f"{folder_path}{os.sep}{file_name}.jpg"
+for folder_path, name, extn in tqdm(new_paths, file=sys.stdout, colour='BLUE'):
+    input_file_path = f"{folder_path}{os.sep}{name}{extn}"
+    output_file_path = f"{folder_path}{os.sep}{name}.jpg"
     image = Image.open(input_file_path)
     image.save(output_file_path, quality=jpeg_quality, exif=image.getexif())
     os.remove(input_file_path)
 
+print(f"Deleted {deleted_count} Live Photos.")
 input("Press any key to exit...")
