@@ -1,7 +1,9 @@
+from uuid import uuid4
+
 import exifread
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from PIL import Image
 from dateutil.parser import parse, ParserError
@@ -18,7 +20,34 @@ def datetime_from_file_name(file_name):
 
 
 def datetime_from_tags(key):
-    return datetime.strptime(str(tags.get(key)), "%Y:%m:%d %H:%M:%S")
+    dt = datetime.strptime(str(tags.get(key)), "%Y:%m:%d %H:%M:%S")
+    offset_time = str(tags.get("EXIF OffsetTimeOriginal") or tags.get("EXIF OffsetTime") or "")
+    if type(offset_time) is str and len(offset_time) > 0:
+        offset_exif = parse_offset(offset_time, inverse=True)  # Subtract offset to get UTC
+        return dt + timedelta(minutes=offset_exif) + timedelta(minutes=offset_input)
+    return dt
+
+
+def parse_offset(offset: str, inverse=False):
+    err_msg = f"Invalid offset '{offset}'. Using +00:00"
+    if not (type(offset) is str and len(offset) > 0):
+        return print(err_msg)
+    if offset[0] == "+":
+        multiplier = 1
+    elif offset[0] == "-":
+        multiplier = -1
+    else:
+        return print(err_msg)
+    if inverse:
+        multiplier *= -1
+    try:
+        hour, minute = offset.split(":")
+        hour = int(hour)
+        minute = int(minute)
+    except ValueError:
+        return print(err_msg)
+    else:
+        return (hour * 60 + minute) * multiplier
 
 
 def partition_file_path(file_path):
@@ -53,6 +82,18 @@ pathname = f"{path}{os.sep}**{os.sep}*"
 date_paths = []
 file_paths = []
 
+_offset_input = input("Offset from UTC (+10:00): ") or "+10:00"
+offset_input = parse_offset(_offset_input)
+
+start_count = input("Start count (1): ")
+try:
+    start_count = int(start_count)
+    if start_count < 1:
+        raise ValueError
+except ValueError:
+    print(f"Invalid count '{start_count}'. Starting at 1")
+    start_count = 1
+
 print("Getting file paths...")
 for extn in tqdm(extensions, file=sys.stdout, colour='BLUE'):
     file_paths.extend(glob(pathname + extn, recursive=True))
@@ -85,17 +126,23 @@ for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
                         print(f"Cannot determine date for {file_name}")
                         input("Press any key to exit...")
                         sys.exit(1)
-        date_paths.append((datetime_object, file_path))
+        uuid = str(uuid4())
+        date_paths.append((datetime_object, file_path, uuid))
 
 date_paths.sort()
 
-print("Renaming files...")
+print("Renaming files (1/2)...")
+for datetime_object, file_path, uuid in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
+    os.rename(file_path, uuid)
+
+print("Renaming files (2/2)...")
 heic_extns = ['.heic', '.heif']
 last_name = ""
 new_paths = []
-for datetime_object, file_path in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
+for datetime_object, file_path, uuid in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
     folder_path, file_name = file_path.rsplit(os.sep, 1)
-    with open(file_path, "rb") as f:
+    old_file_path = f"{folder_path}{os.sep}{uuid}"
+    with open(old_file_path, "rb") as f:
         partitions = file_name.rpartition(".")
         extn = "".join(partitions[1:]).lower()
         if extn in heic_extns:
@@ -104,20 +151,23 @@ for datetime_object, file_path in tqdm(date_paths, file=sys.stdout, colour='BLUE
             extn = ".jpg"
         elif extn == ".mov" and last_name == partitions[0]:
             # Live Photo
-            os.remove(file_path)
+            os.remove(old_file_path)
             deleted_count += 1
             continue
         last_name = partitions[0]
         if datetime_object:
             date_formatted = datetime_object.strftime("%Y %m %b %d")
-            counter = counters.get(date_formatted, 1)
+            if date_formatted not in counters:
+                counters[date_formatted] = start_count
+                start_count = 1
+            counter = counters.get(date_formatted)
             counters[date_formatted] = counter + 1
 
             new_name = f"{date_formatted} {counter:03} 01"
             new_file_path = f"{folder_path}{os.sep}{new_name}{extn}"
             if extn.lower() in heic_extns:
                 new_paths.append((folder_path, new_name, extn))
-            os.rename(file_path, new_file_path)
+            os.rename(old_file_path, new_file_path)
 
 print("Converting to JPG...")
 register_heif_opener()
