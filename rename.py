@@ -127,20 +127,19 @@ for file_path in tqdm(file_paths, file=sys.stdout, colour='BLUE'):
                         input("Press any key to exit...")
                         sys.exit(1)
         uuid = str(uuid4())
-        date_paths.append((datetime_object, file_path, uuid))
+        date_paths.append((datetime_object, folder_path, file_name, uuid))
 
 date_paths.sort()
 
 print("Renaming files (1/2)...")
-for datetime_object, file_path, uuid in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
-    os.rename(file_path, uuid)
+for datetime_object, folder_path, file_name, uuid in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
+    os.rename(f"{folder_path}{os.sep}{file_name}", f"{folder_path}{os.sep}{uuid}")
 
 print("Renaming files (2/2)...")
 heic_extns = ['.heic', '.heif']
 last_name = ""
 new_paths = []
-for datetime_object, file_path, uuid in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
-    folder_path, file_name = file_path.rsplit(os.sep, 1)
+for datetime_object, folder_path, file_name, uuid in tqdm(date_paths, file=sys.stdout, colour='BLUE'):
     old_file_path = f"{folder_path}{os.sep}{uuid}"
     with open(old_file_path, "rb") as f:
         partitions = file_name.rpartition(".")
