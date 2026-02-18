@@ -20,7 +20,7 @@ def datetime_from_file_name(file_name):
 
 
 def datetime_from_tags(key):
-    dt = datetime.strptime(str(tags.get(key)), "%Y:%m:%d %H:%M:%S")
+    dt = datetime.strptime(str(tags.get(key)).split('.')[0], "%Y:%m:%d %H:%M:%S")
     offset_time = str(tags.get("EXIF OffsetTimeOriginal") or tags.get("EXIF OffsetTime") or "")
     if type(offset_time) is str and len(offset_time) > 0:
         offset_exif = parse_offset(offset_time, inverse=True)  # Subtract offset to get UTC
